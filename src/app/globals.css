@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #0a0a0a;
+  color: #ededed;
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Markdown styles - Executive Dashboard */
+.markdown {
+  @apply text-gray-200 leading-relaxed;
+}
+
+.markdown h1 {
+  @apply text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-3;
+}
+
+.markdown h2 {
+  @apply text-xl font-semibold mb-4 text-white flex items-center gap-2;
+}
+
+.markdown h3 {
+  @apply text-lg font-medium mb-3 text-gray-100;
+}
+
+.markdown p {
+  @apply mb-4 text-gray-300;
+}
+
+.markdown ul {
+  @apply mb-4 space-y-2;
+}
+
+.markdown ul li {
+  @apply flex items-start gap-2 text-gray-300;
+}
+
+.markdown ul li::before {
+  content: none;
+}
+
+.markdown ol {
+  @apply list-decimal list-inside mb-4 space-y-2 text-gray-300;
+}
+
+.markdown strong {
+  @apply text-white font-semibold;
+}
+
+.markdown code {
+  @apply bg-gray-800/80 px-2 py-1 rounded text-sm text-emerald-400 font-mono;
+}
+
+.markdown pre {
+  @apply bg-gray-900 p-4 rounded-xl mb-4 overflow-x-auto border border-gray-800;
+}
+
+.markdown pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Executive Table Styles */
+.markdown table {
+  @apply w-full border-collapse mb-6 text-sm rounded-lg overflow-hidden;
+  border: 1px solid #374151;
+}
+
+.markdown thead {
+  @apply bg-gray-800;
+}
+
+.markdown thead tr {
+  @apply border-b-2 border-gray-600;
+}
+
+.markdown th {
+  @apply px-4 py-3 text-left text-xs font-bold text-gray-200 uppercase tracking-wider;
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+}
+
+.markdown tbody tr {
+  @apply border-b border-gray-700;
+}
+
+.markdown tbody tr:nth-child(even) {
+  @apply bg-gray-800/30;
+}
+
+.markdown tbody tr:hover {
+  @apply bg-gray-700/50;
+}
+
+.markdown td {
+  @apply px-4 py-3 text-gray-300;
+}
+
+.markdown td:first-child {
+  @apply font-medium text-white;
+}
+
+.markdown blockquote {
+  @apply border-l-4 border-blue-500 pl-4 py-2 bg-blue-500/5 rounded-r-lg italic text-gray-400 mb-4;
+}
+
+.markdown a {
+  @apply text-blue-400 hover:text-blue-300 underline underline-offset-2;
+}
+
+.markdown hr {
+  @apply border-gray-700/50 my-6;
+}
+
+/* Status Badges */
+.markdown em {
+  @apply not-italic text-gray-400;
+}
