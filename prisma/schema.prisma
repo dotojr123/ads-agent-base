@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- BASE SAAS MODELS ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  workspaces    UserWorkspace[]
+  alertPreferences AlertPreference[]
+  auditLogs     AuditLog[]
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           UserWorkspace[]
+  automationRules AutomationRule[]
+  alerts          Alert[]
+  webhooks        Webhook[]
+  auditLogs       AuditLog[]
+}
+
+model UserWorkspace {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        String   @default("MEMBER") // OWNER, MEMBER
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+// --- PHASE 3: AUTOMATIONS & ALERTS ---
+
+enum TriggerType {
+  META_THRESHOLD
+  GOOGLE_THRESHOLD
+  BUDGET_LIMIT
+}
+
+enum ActionType {
+  PAUSE
+  ALERT
+  SCALE
+}
+
+model AutomationRule {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  name         String
+  description  String?
+
+  triggerType  TriggerType
+  triggerValue Float
+
+  actionType   ActionType
+  actionValue  Float?
+
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  alerts    Alert[]
+}
+
+enum AlertType {
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model Alert {
+  id               String      @id @default(cuid())
+  workspaceId      String
+  automationRuleId String?
+  triggeredAt      DateTime    @default(now())
+
+  alertType        AlertType
+  message          String
+  metadata         Json?
+  status           AlertStatus @default(OPEN)
+
+  workspace        Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  automationRule   AutomationRule? @relation(fields: [automationRuleId], references: [id], onDelete: SetNull)
+}
+
+enum Channel {
+  EMAIL
+  IN_APP
+  WEBHOOK
+}
+
+model AlertPreference {
+  id          String   @id @default(cuid())
+  userId      String
+  channel     Channel
+  enabled     Boolean  @default(true)
+  preferences Json?    // { email: "..." }
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String?
+  action      String
+  entityType  String
+  entityId    String?
+  changes     Json?
+  timestamp   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Webhook {
+  id          String   @id @default(cuid())
+  workspaceId String
+  url         String
+  events      Json     // ["alert.created", "automation.triggered"]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
