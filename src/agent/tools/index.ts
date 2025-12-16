@@ -3,14 +3,16 @@
  */
 
 import * as facebookApi from './facebook-api'
+import * as googleApi from './google-api'
 
 // Definição das ferramentas no formato OpenAI
 export const tools = [
+  // --- FACEBOOK ADS TOOLS ---
   {
     type: 'function',
     function: {
-      name: 'get_ad_accounts',
-      description: 'Lista todas as contas de anúncios acessíveis com o token atual. Use para verificar se o token está funcionando e quais contas estão disponíveis.',
+      name: 'fb_get_ad_accounts',
+      description: 'Lista todas as contas de anúncios acessíveis no Facebook/Meta.',
       parameters: {
         type: 'object',
         properties: {},
@@ -21,8 +23,8 @@ export const tools = [
   {
     type: 'function',
     function: {
-      name: 'get_campaigns',
-      description: 'Lista todas as campanhas da conta de anúncios. Pode filtrar por status (ACTIVE, PAUSED, etc).',
+      name: 'fb_get_campaigns',
+      description: 'Lista todas as campanhas da conta de anúncios Meta. Pode filtrar por status.',
       parameters: {
         type: 'object',
         properties: {
@@ -38,14 +40,14 @@ export const tools = [
   {
     type: 'function',
     function: {
-      name: 'get_campaign_insights',
-      description: 'Obtém métricas detalhadas de uma campanha específica: impressões, cliques, gastos, CTR, CPC, CPM, conversões, etc.',
+      name: 'fb_get_campaign_insights',
+      description: 'Obtém métricas detalhadas de uma campanha Meta (ROAS, CPC, CTR, etc).',
       parameters: {
         type: 'object',
         properties: {
           campaign_id: {
             type: 'string',
-            description: 'ID da campanha para buscar insights',
+            description: 'ID da campanha',
           },
           date_preset: {
             type: 'string',
@@ -60,14 +62,14 @@ export const tools = [
   {
     type: 'function',
     function: {
-      name: 'get_adsets',
-      description: 'Lista os conjuntos de anúncios (AdSets). Pode filtrar por campanha específica.',
+      name: 'fb_get_adsets',
+      description: 'Lista os conjuntos de anúncios (AdSets) do Meta.',
       parameters: {
         type: 'object',
         properties: {
           campaign_id: {
             type: 'string',
-            description: 'ID da campanha para filtrar AdSets (opcional)',
+            description: 'ID da campanha (opcional)',
           },
         },
         required: [],
@@ -77,42 +79,14 @@ export const tools = [
   {
     type: 'function',
     function: {
-      name: 'get_ads',
-      description: 'Lista os anúncios. Pode filtrar por AdSet específico.',
+      name: 'fb_create_campaign',
+      description: 'Cria uma nova campanha Meta com estrutura simplificada 2025 (Advantage+).',
       parameters: {
         type: 'object',
         properties: {
-          adset_id: {
-            type: 'string',
-            description: 'ID do AdSet para filtrar anúncios (opcional)',
-          },
-        },
-        required: [],
-      },
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'create_campaign',
-      description: 'Cria uma nova campanha. Por padrão cria como PAUSADA para revisão.',
-      parameters: {
-        type: 'object',
-        properties: {
-          name: {
-            type: 'string',
-            description: 'Nome da campanha',
-          },
-          objective: {
-            type: 'string',
-            description: 'Objetivo: OUTCOME_SALES, OUTCOME_LEADS, OUTCOME_AWARENESS, OUTCOME_ENGAGEMENT, OUTCOME_TRAFFIC',
-            default: 'OUTCOME_SALES',
-          },
-          status: {
-            type: 'string',
-            description: 'Status inicial: PAUSED ou ACTIVE',
-            default: 'PAUSED',
-          },
+          name: { type: 'string' },
+          objective: { type: 'string', default: 'OUTCOME_SALES' },
+          status: { type: 'string', default: 'PAUSED' },
         },
         required: ['name'],
       },
@@ -121,45 +95,41 @@ export const tools = [
   {
     type: 'function',
     function: {
-      name: 'create_adset',
-      description: 'Cria um novo conjunto de anúncios (AdSet) dentro de uma campanha.',
+      name: 'fb_pause_campaign',
+      description: 'Pausa uma campanha Meta ativa.',
       parameters: {
         type: 'object',
         properties: {
-          campaign_id: {
-            type: 'string',
-            description: 'ID da campanha onde criar o AdSet',
-          },
-          name: {
-            type: 'string',
-            description: 'Nome do AdSet',
-          },
-          daily_budget: {
-            type: 'number',
-            description: 'Orçamento diário em reais (ex: 50 para R$ 50)',
-          },
-          optimization_goal: {
-            type: 'string',
-            description: 'Objetivo de otimização: OFFSITE_CONVERSIONS, LINK_CLICKS, IMPRESSIONS, REACH',
-            default: 'OFFSITE_CONVERSIONS',
-          },
+          campaign_id: { type: 'string' },
         },
-        required: ['campaign_id', 'name', 'daily_budget'],
+        required: ['campaign_id'],
+      },
+    }
+  },
+
+  // --- GOOGLE ADS TOOLS ---
+  {
+    type: 'function',
+    function: {
+      name: 'google_get_campaigns',
+      description: 'Lista todas as campanhas da conta Google Ads.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
       },
     }
   },
   {
     type: 'function',
     function: {
-      name: 'pause_campaign',
-      description: 'Pausa uma campanha ativa.',
+      name: 'google_get_campaign_insights',
+      description: 'Obtém métricas de uma campanha Google Ads.',
       parameters: {
         type: 'object',
         properties: {
-          campaign_id: {
-            type: 'string',
-            description: 'ID da campanha para pausar',
-          },
+          campaign_id: { type: 'string' },
+          date_preset: { type: 'string', default: 'LAST_7_DAYS' }
         },
         required: ['campaign_id'],
       },
@@ -168,43 +138,16 @@ export const tools = [
   {
     type: 'function',
     function: {
-      name: 'activate_campaign',
-      description: 'Ativa uma campanha pausada.',
+      name: 'google_create_campaign',
+      description: 'Cria uma nova campanha Google Ads (Search, PMax, etc).',
       parameters: {
         type: 'object',
         properties: {
-          campaign_id: {
-            type: 'string',
-            description: 'ID da campanha para ativar',
-          },
+          name: { type: 'string' },
+          budget: { type: 'number', description: 'Orçamento diário' },
+          type: { type: 'string', description: 'SEARCH ou PERFORMANCE_MAX', default: 'SEARCH' }
         },
-        required: ['campaign_id'],
-      },
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'update_budget',
-      description: 'Atualiza o orçamento diário de uma campanha ou AdSet.',
-      parameters: {
-        type: 'object',
-        properties: {
-          entity_id: {
-            type: 'string',
-            description: 'ID da campanha ou AdSet',
-          },
-          daily_budget: {
-            type: 'number',
-            description: 'Novo orçamento diário em reais',
-          },
-          entity_type: {
-            type: 'string',
-            description: 'Tipo: campaign ou adset',
-            default: 'adset',
-          },
-        },
-        required: ['entity_id', 'daily_budget'],
+        required: ['name', 'budget'],
       },
     }
   },
@@ -214,66 +157,66 @@ export const tools = [
 export async function executeTool(
   toolName: string,
   input: Record<string, unknown>,
-  config?: facebookApi.FacebookConfig
+  config?: { facebook?: facebookApi.FacebookConfig, google?: googleApi.GoogleConfig }
 ): Promise<object> {
   try {
-    switch (toolName) {
-      case 'get_ad_accounts':
-        return await facebookApi.getAdAccounts(config)
+    // --- FACEBOOK HANDLERS ---
+    if (toolName.startsWith('fb_')) {
+        const fbConfig = config?.facebook
+        if (!fbConfig) return { error: 'Configuração do Facebook não encontrada.' }
 
-      case 'get_campaigns':
-        return await facebookApi.getCampaigns(input.status as string | undefined, config)
-
-      case 'get_campaign_insights':
-        return await facebookApi.getCampaignInsights(
-          input.campaign_id as string,
-          (input.date_preset as string) || 'last_7d',
-          config
-        )
-
-      case 'get_adsets':
-        return await facebookApi.getAdSets(input.campaign_id as string | undefined, config)
-
-      case 'get_ads':
-        return await facebookApi.getAds(input.adset_id as string | undefined, config)
-
-      case 'create_campaign':
-        return await facebookApi.createCampaign(
-          input.name as string,
-          (input.objective as string) || 'OUTCOME_SALES',
-          (input.status as string) || 'PAUSED',
-          [], // specialAdCategories default
-          config
-        )
-
-      case 'create_adset':
-        return await facebookApi.createAdSet(
-          input.campaign_id as string,
-          input.name as string,
-          input.daily_budget as number,
-          (input.optimization_goal as string) || 'OFFSITE_CONVERSIONS',
-          'IMPRESSIONS', // billingEvent default
-          {}, // targeting default
-          config
-        )
-
-      case 'pause_campaign':
-        return await facebookApi.pauseCampaign(input.campaign_id as string, config)
-
-      case 'activate_campaign':
-        return await facebookApi.activateCampaign(input.campaign_id as string, config)
-
-      case 'update_budget':
-        return await facebookApi.updateBudget(
-          input.entity_id as string,
-          input.daily_budget as number,
-          (input.entity_type as 'campaign' | 'adset') || 'adset',
-          config
-        )
-
-      default:
-        return { error: `Ferramenta não encontrada: ${toolName}` }
+        switch (toolName) {
+            case 'fb_get_ad_accounts':
+                return await facebookApi.getAdAccounts(fbConfig)
+            case 'fb_get_campaigns':
+                return await facebookApi.getCampaigns(input.status as string | undefined, fbConfig)
+            case 'fb_get_campaign_insights':
+                return await facebookApi.getCampaignInsights(input.campaign_id as string, (input.date_preset as string) || 'last_7d', fbConfig)
+            case 'fb_get_adsets':
+                return await facebookApi.getAdSets(input.campaign_id as string | undefined, fbConfig)
+            case 'fb_create_campaign':
+                return await facebookApi.createCampaign(
+                    input.name as string,
+                    (input.objective as string) || 'OUTCOME_SALES',
+                    (input.status as string) || 'PAUSED',
+                    [],
+                    fbConfig
+                )
+            case 'fb_pause_campaign':
+                return await facebookApi.pauseCampaign(input.campaign_id as string, fbConfig)
+            default:
+                return { error: `Ferramenta Meta não encontrada: ${toolName}` }
+        }
     }
+
+    // --- GOOGLE HANDLERS ---
+    if (toolName.startsWith('google_')) {
+        const googleConfig = config?.google
+        // For Mock, we don't strictly enforce config presence but usually we would
+
+        switch(toolName) {
+            case 'google_get_campaigns':
+                return await googleApi.getCampaigns(googleConfig)
+            case 'google_get_campaign_insights':
+                return await googleApi.getCampaignInsights(
+                    input.campaign_id as string,
+                    input.date_preset as string || 'LAST_7_DAYS',
+                    googleConfig
+                )
+            case 'google_create_campaign':
+                return await googleApi.createCampaign(
+                    input.name as string,
+                    input.budget as number,
+                    input.type as string || 'SEARCH',
+                    googleConfig
+                )
+            default:
+                return { error: `Ferramenta Google não encontrada: ${toolName}` }
+        }
+    }
+
+    return { error: `Ferramenta não reconhecida: ${toolName}` }
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
     return { error: errorMessage }

@@ -1,0 +1,271 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  workspaces    UserWorkspace[]
+  chatSessions  ChatSession[]
+  alertPreferences AlertPreference[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Business Models ---
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique // URL friendly identifier
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isWhitelabel Boolean @default(false)
+
+  users         UserWorkspace[]
+  adAccounts    AdAccount[]
+  subscription  Subscription?
+  chatSessions  ChatSession[]
+  automationRules AutomationRule[]
+  alerts        Alert[]
+  auditLogs     AuditLog[]
+}
+
+enum Role {
+  OWNER
+  MEMBER
+  VIEWER
+}
+
+model UserWorkspace {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        Role     @default(MEMBER)
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+enum Platform {
+  META
+  GOOGLE
+}
+
+model AdAccount {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  platform      Platform
+  name          String
+  externalId    String   // ID no Facebook/Google (act_123)
+
+  // Credentials (Encrypted)
+  accessToken   String   @db.Text
+  refreshToken  String?  @db.Text
+  expiresAt     BigInt?  // Timestamp
+
+  // Metadata
+  pixelId       String?
+  pageId        String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  INCOMPLETE
+  TRIALING
+}
+
+enum PlanType {
+  STARTER
+  PRO
+  AGENCY
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  workspaceId          String             @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus @default(INCOMPLETE)
+  plan                 PlanType           @default(STARTER)
+
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model ChatSession {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  title       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages  Message[]
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  chatSessionId String
+  role          MessageRole
+  content       String      @db.Text
+  metadata      Json?       // Para guardar logs, tool_calls, etc
+  createdAt     DateTime    @default(now())
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+}
+
+// --- FASE 3: AUTOMATION & ALERTS ---
+
+enum ActionType {
+  NOTIFY
+  PAUSE_CAMPAIGN
+  PAUSE_ADSET
+  PAUSE_AD
+  INCREASE_BUDGET
+  DECREASE_BUDGET
+}
+
+model AutomationRule {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  platform    Platform
+
+  // Definition
+  condition   Json     // { metric: 'CPC', operator: 'GT', value: 5, timeWindow: '3d' }
+  action      ActionType
+  actionConfig Json?   // { amount: 20, unit: 'PERCENT' }
+
+  active      Boolean  @default(true)
+  lastRunAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  alerts    Alert[]
+  auditLogs AuditLog[]
+}
+
+enum AlertLevel {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Alert {
+  id          String     @id @default(cuid())
+  workspaceId String
+  ruleId      String?
+  level       AlertLevel @default(INFO)
+
+  title       String
+  message     String     @db.Text
+  read        Boolean    @default(false)
+
+  createdAt   DateTime   @default(now())
+
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  rule        AutomationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+}
+
+model AuditLog {
+  id          String     @id @default(cuid())
+  workspaceId String
+  ruleId      String?
+  action      String     // "PAUSE_CAMPAIGN"
+  entityId    String?    // Campaign ID, etc
+  details     Json?      // Result, previous value, new value
+
+  createdAt   DateTime   @default(now())
+
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  rule        AutomationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+}
+
+model AlertPreference {
+  id          String   @id @default(cuid())
+  userId      String
+
+  emailEnabled    Boolean @default(true)
+  inAppEnabled    Boolean @default(true)
+  slackWebhook    String?
+  whatsappNumber  String?
+
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
