@@ -29,6 +29,7 @@ export default function ChatPage() {
   const [logs, setLogs] = useState<string[]>([])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -38,14 +39,25 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages, logs])
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [input]);
+
+  const sendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!input.trim() || isLoading) return
 
     const userMsg = { role: 'user', content: input }
     setMessages(prev => [...prev, userMsg])
     setInput('')
     setIsLoading(true)
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
 
     try {
       const response = await fetch('/api/chat', {
@@ -81,6 +93,13 @@ export default function ChatPage() {
       setIsLoading(false)
     }
   }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a]">
@@ -156,19 +175,24 @@ export default function ChatPage() {
 
         {/* Input Area */}
         <div className="p-4 bg-gray-900 border-t border-gray-800">
-            <form onSubmit={sendMessage} className="relative max-w-4xl mx-auto flex gap-2">
-                <input
-                    type="text"
+            <form onSubmit={sendMessage} className="relative max-w-4xl mx-auto flex gap-2 items-end">
+                <textarea
+                    ref={textareaRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder="Pergunte sobre suas campanhas (ex: 'Como está meu ROAS hoje?')"
-                    className="flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-xl px-4 py-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition"
+                    rows={1}
+                    aria-label="Sua mensagem"
+                    className="flex-1 bg-gray-800 text-white placeholder-gray-500 rounded-xl px-4 py-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition resize-none scrollbar-thin scrollbar-thumb-gray-600"
                     disabled={isLoading}
+                    style={{ minHeight: '50px', maxHeight: '200px' }}
                 />
                 <button
                     type="submit"
+                    aria-label="Enviar mensagem"
                     disabled={isLoading || !input.trim()}
-                    className="bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-500 text-white p-3 rounded-xl transition shadow-lg shadow-green-900/20"
+                    className="bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-500 text-white p-3 rounded-xl transition shadow-lg shadow-green-900/20 h-[50px] w-[50px] flex items-center justify-center shrink-0"
                 >
                     <Send size={20} />
                 </button>
