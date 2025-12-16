@@ -8,7 +8,10 @@ import path from 'path'
 function loadKnowledge(): string {
   try {
     const knowledgePath = path.join(process.cwd(), 'knowledge', 'ads-knowledge.md')
-    return fs.readFileSync(knowledgePath, 'utf-8')
+    if (fs.existsSync(knowledgePath)) {
+       return fs.readFileSync(knowledgePath, 'utf-8')
+    }
+    return ''
   } catch (error) {
     console.error('Erro ao carregar knowledge:', error)
     return ''
@@ -16,7 +19,7 @@ function loadKnowledge(): string {
 }
 
 // System prompt do agente
-const SYSTEM_PROMPT = `Você é o AI Agent Ads, um agente de tráfego especializado em Facebook/Meta Ads.
+const SYSTEM_PROMPT = `Você é o AI Agent Ads, um agente de tráfego especializado em Facebook/Meta Ads, alimentado por um modelo avançado da OpenAI.
 
 ${loadKnowledge()}
 
@@ -25,7 +28,7 @@ ${loadKnowledge()}
 1. Quando o usuário pedir para analisar, criar ou gerenciar campanhas, USE AS FERRAMENTAS DISPONÍVEIS.
 2. Sempre explique o que está fazendo antes de executar uma ação.
 3. Após executar uma ferramenta, interprete os resultados e forneça insights.
-4. Se houver erro de token expirado, oriente o usuário a renovar em: https://developers.facebook.com/tools/explorer/
+4. Se houver erro de token expirado (Erro 190), oriente o usuário a renovar o token nas configurações.
 5. Seja proativo em sugerir otimizações e melhorias.
 
 ## ⚠️ FORMATO DE RESPOSTA OBRIGATÓRIO - ESTILO RELATÓRIO EXECUTIVO
@@ -101,12 +104,10 @@ export async function POST(request: NextRequest) {
     if (!process.env.OPENAI_API_KEY) {
       addLog('error', '❌ OPENAI_API_KEY não configurada')
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY não configurada', logs },
+        { error: 'OPENAI_API_KEY não configurada no servidor (.env)', logs },
         { status: 500 }
       )
     }
-
-    addLog('info', '🔑 API Key encontrada')
 
     const client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -121,13 +122,14 @@ export async function POST(request: NextRequest) {
       }))
     ]
 
-    addLog('info', `🧠 Modelo: ${process.env.OPENAI_MODEL || 'gpt-4o-mini'}`)
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+    addLog('info', `🧠 Modelo: ${model}`)
 
     // Primeira chamada
     addLog('info', '🚀 Enviando para OpenAI...')
 
     let response = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: model,
       messages: openAIMessages,
       tools: tools as OpenAI.Chat.Completions.ChatCompletionTool[],
       tool_choice: 'auto',
@@ -139,10 +141,15 @@ export async function POST(request: NextRequest) {
     addLog('info', `📨 Resposta recebida (finish_reason: ${finishReason})`)
 
     // Loop para processar tool calls
-    while (finishReason === 'tool_calls' && responseMessage.tool_calls) {
+    // Limite de segurança para evitar loops infinitos
+    let loopCount = 0
+    const MAX_LOOPS = 5
+
+    while (finishReason === 'tool_calls' && responseMessage.tool_calls && loopCount < MAX_LOOPS) {
+      loopCount++
       const toolCalls = responseMessage.tool_calls
 
-      addLog('info', `🔧 ${toolCalls.length} tool(s) para executar`)
+      addLog('info', `🔧 ${toolCalls.length} tool(s) para executar (Loop ${loopCount})`)
 
       // Adicionar mensagem do assistente com as chamadas de ferramentas ao histórico
       openAIMessages.push(responseMessage)
@@ -175,7 +182,7 @@ export async function POST(request: NextRequest) {
 
       // Nova chamada com resultados das ferramentas
       response = await client.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: model,
         messages: openAIMessages,
         tools: tools as OpenAI.Chat.Completions.ChatCompletionTool[],
         tool_choice: 'auto',
@@ -185,6 +192,10 @@ export async function POST(request: NextRequest) {
       finishReason = response.choices[0].finish_reason
 
       addLog('info', `📨 Resposta recebida (finish_reason: ${finishReason})`)
+    }
+
+    if (loopCount >= MAX_LOOPS) {
+       addLog('error', '⚠️ Limite de loops de ferramenta atingido.')
     }
 
     addLog('info', '✅ Processamento concluído!')
@@ -205,19 +216,18 @@ export async function POST(request: NextRequest) {
       console.error('Stack:', error.stack)
     }
 
-    if (errorMessage.includes('expired') || errorMessage.includes('token')) {
-      return NextResponse.json({
+    // Tratamento de erros específicos
+    if (errorMessage.includes('Token do Facebook expirado') || errorMessage.includes('190')) {
+       return NextResponse.json({
         content: `❌ **Token do Facebook expirado!**
 
-Para renovar:
-1. Acesse: https://developers.facebook.com/tools/explorer/
-2. Selecione seu App
-3. Marque as permissões: \`ads_read\`, \`ads_management\`
-4. Clique em "Generate Access Token"
-5. Copie e cole no arquivo \`.env\`
-6. Reinicie o servidor
+O token de acesso precisa ser renovado.
 
-Depois tente novamente! 🔄`,
+**Como resolver:**
+1. Clique no ícone de engrenagem ⚙️ no canto superior direito.
+2. Atualize o campo "Access Token" com um novo token válido.
+3. Se não tiver um token, gere um novo em: https://developers.facebook.com/tools/explorer/
+4. Salve e tente novamente.`,
         logs,
       })
     }

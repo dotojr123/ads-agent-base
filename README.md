@@ -1,219 +1,151 @@
 # 🤖 AI Agent Ads - Agente de Tráfego
 
-> Agente de IA especializado em Facebook/Meta Ads usando Claude Opus 4
+> **Seu especialista em tráfego pago com IA.**
+> Gerencie, analise e otimize suas campanhas do Facebook Ads conversando com um agente inteligente.
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Status](https://img.shields.io/badge/status-stable-green.svg)
 
 ## 🎯 O que este agente faz?
 
-Este é um agente de tráfego inteligente que:
+Este projeto usa a **OpenAI (GPT-4o)** conectada à **Facebook Graph API** para criar um assistente virtual capaz de:
 
-- ✅ **Analisa campanhas** - Métricas, performance, ROI
-- ✅ **Cria campanhas** - ASC, Leads, Conversões
-- ✅ **Otimiza anúncios** - Sugere melhorias baseado em dados
-- ✅ **Gera relatórios** - Performance diária/semanal
-- ✅ **Responde perguntas** - Como um especialista em tráfego
+- ✅ **Analisar Campanhas**: Fornece relatórios detalhados de performance (CTR, CPC, ROAS, etc).
+- ✅ **Criar Estruturas**: Cria campanhas, conjuntos de anúncios e anúncios.
+- ✅ **Otimizar**: Identifica oportunidades de escala ou corte de gastos.
+- ✅ **Tirar Dúvidas**: Responde perguntas sobre estratégias de tráfego pago.
 
-## 🚀 Quick Start
+---
 
-### 1. Instalar dependências
+## 🚀 Guia de Instalação Passo a Passo
+
+Siga este guia para rodar o projeto em sua máquina em menos de 5 minutos.
+
+### 1. Pré-requisitos
+
+Certifique-se de ter instalado:
+- **Node.js** (versão 18 ou superior)
+- **Git**
+
+### 2. Clonar e Instalar
+
+Abra seu terminal e execute:
 
 ```bash
+# Clone o repositório (se ainda não o fez)
+git clone <url-do-repositorio>
+cd ai-agent-ads
+
+# Instale as dependências
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
+### 3. Configurar Variáveis de Ambiente
 
-Copie o arquivo de exemplo:
+Crie um arquivo `.env` na raiz do projeto. Você pode copiar o exemplo:
 
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` com suas credenciais:
+Edite o arquivo `.env` e adicione sua chave da OpenAI:
 
 ```env
-# Claude API (Anthropic)
-ANTHROPIC_API_KEY=sk-ant-api03-...
+# OpenAI API Key (Obrigatório)
+OPENAI_API_KEY=sk-...
 
-# Facebook/Meta Ads
-META_ACCESS_TOKEN=EAAZAisZBEEli4BQ...
-META_AD_ACCOUNT_ID=act_2881836401882483
-META_PAGE_ID=354471961693587
-META_PIXEL_ID=512054569681165
+# Modelo (Opcional, padrão: gpt-4o-mini)
+OPENAI_MODEL=gpt-4o-mini
 ```
 
-### 3. Obter Token do Facebook
+> **Nota:** As credenciais do Facebook NÃO precisam estar no `.env` para uso local. Você pode configurá-las diretamente na interface do usuário para maior segurança.
 
-⚠️ **IMPORTANTE:** O token do Facebook expira a cada 2 horas!
+### 4. Rodar o Projeto
 
-1. Acesse: https://developers.facebook.com/tools/explorer/
-2. Selecione seu App
-3. Marque as permissões:
-   - `ads_read`
-   - `ads_management`
-   - `business_management`
-4. Clique em "Generate Access Token"
-5. Copie e cole no `.env`
-
-### 4. Rodar o agente
+Inicie o servidor de desenvolvimento:
 
 ```bash
 npm run dev
 ```
 
-Acesse: http://localhost:3000
+Acesse em seu navegador: **http://localhost:3000**
+
+---
+
+## ⚙️ Como Obter o Token do Facebook (Passo Crucial)
+
+Para que o agente funcione, ele precisa de permissão para acessar seus anúncios. O jeito mais fácil de testar é gerando um token temporário.
+
+1. Acesse o **[Graph API Explorer](https://developers.facebook.com/tools/explorer/)**.
+2. No menu lateral "Meta App", selecione seu aplicativo (ou crie um novo se não tiver).
+3. Em "User or Page", selecione "User Token".
+4. Em **Permissions**, adicione as seguintes permissões (procure na lista):
+   - `ads_read` (Ler dados de anúncios)
+   - `ads_management` (Criar/Editar anúncios)
+   - `read_insights` (Ler métricas)
+5. Clique no botão azul **Generate Access Token**.
+6. Copie o token gerado (começa com `EAA...`).
+
+### No Agente (http://localhost:3000):
+
+1. Clique no ícone de engrenagem **⚙️** no canto superior direito.
+2. Cole o **Access Token** que você copiou.
+3. Preencha o **Ad Account ID**:
+   - Você encontra esse ID no Gerenciador de Anúncios do Facebook (na URL, procure por `act=123456...`).
+   - Insira no formato: `act_SEU_NUMERO`.
+4. Clique em **Salvar Configuração**.
+
+---
+
+## 💡 Como Usar
+
+Agora você pode conversar com o agente! Tente estes comandos:
+
+### Analisar Performance
+> "Analise a performance das minhas campanhas ativas nos últimos 7 dias."
+> "Qual campanha tem o melhor ROAS?"
+> "Minhas campanhas estão caras? O CPC está bom?"
+
+### Criar Campanhas
+> "Crie uma campanha de Vendas chamada 'Promoção Relâmpago'."
+> "Crie um conjunto de anúncios para público aberto com orçamento de R$ 50."
+
+### Otimizar
+> "Pause a campanha 'Vendas - Frio' pois está muito cara."
+> "Aumente o orçamento da campanha vencedora para R$ 100."
+
+---
+
+## 🛠️ Solução de Problemas
+
+### Erro: "Token do Facebook expirado (Erro 190)"
+Tokens gerados no Graph Explorer duram apenas cerca de 1-2 horas.
+- **Solução:** Volte ao Graph Explorer, clique em "Generate Access Token" novamente e atualize nas configurações do agente.
+
+### Erro: "Permission Denied" ou "User not Admin"
+- **Solução:** Verifique se você adicionou as permissões `ads_read` e `ads_management` ao gerar o token. Certifique-se também de que seu usuário é administrador da conta de anúncios.
+
+### O Agente diz que fez algo, mas não aparece no Facebook
+- **Solução:** Verifique se o agente não simulou a ação. Peça para ele confirmar se a ação foi executada via API. Verifique os "Logs" (botão no topo) para ver se a ferramenta retornou sucesso.
+
+---
 
 ## 📁 Estrutura do Projeto
 
 ```
-ads-agent/
-├── src/
-│   ├── agent/
-│   │   ├── index.ts          # Agente principal
-│   │   ├── tools/            # Ferramentas do agente
-│   │   │   ├── facebook-api.ts
-│   │   │   ├── campaign-creator.ts
-│   │   │   ├── analytics.ts
-│   │   │   └── index.ts
-│   │   └── prompts/
-│   │       └── system.md     # Prompt do sistema (persona)
-│   ├── api/
-│   │   └── chat/
-│   │       └── route.ts      # API endpoint
-│   └── app/
-│       └── page.tsx          # Interface do chat
-├── knowledge/
-│   └── claude.md             # Conhecimento do agente
-├── .env.example
-├── .env
-├── package.json
-└── README.md
+src/
+├── agent/
+│   ├── tools/            # Ferramentas (Conexão com Facebook)
+│   │   ├── facebook-api.ts
+│   │   └── index.ts
+│   └── prompts/          # Instruções do sistema
+├── app/
+│   ├── api/chat/         # Backend (Next.js API Route)
+│   └── page.tsx          # Frontend (Interface de Chat)
+├── knowledge/            # Base de conhecimento do Agente
+└── ...
 ```
 
-## 🧠 Como o Agente Funciona
+## 📄 Licença
 
-### Arquitetura
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    FRONTEND (React)                      │
-│                   Chat Interface                         │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────┐
-│                    API (Next.js)                         │
-│                   /api/chat                              │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────┐
-│                 AGENTE (Claude Opus 4)                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │
-│  │ System      │  │ Knowledge   │  │ Tools       │      │
-│  │ Prompt      │  │ (claude.md) │  │ (Facebook)  │      │
-│  └─────────────┘  └─────────────┘  └─────────────┘      │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────┐
-│              FACEBOOK ADS API (Graph API)                │
-│  Campanhas | AdSets | Ads | Insights | Creatives        │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Fluxo de Execução
-
-1. **Usuário envia mensagem** no chat
-2. **API recebe** e monta contexto (system prompt + knowledge)
-3. **Claude Opus 4** processa e decide qual tool usar
-4. **Tool executa** (ex: buscar métricas no Facebook)
-5. **Claude interpreta** resultado e responde
-6. **Frontend exibe** resposta formatada
-
-## 🛠️ Tools Disponíveis
-
-| Tool | Descrição |
-|------|-----------|
-| `get_campaigns` | Lista todas as campanhas |
-| `get_campaign_insights` | Métricas de uma campanha |
-| `create_campaign` | Cria nova campanha |
-| `create_adset` | Cria conjunto de anúncios |
-| `create_ad` | Cria anúncio (sem imagem) |
-| `pause_campaign` | Pausa campanha |
-| `activate_campaign` | Ativa campanha |
-| `get_ad_accounts` | Lista contas de anúncios |
-
-## 📊 Exemplos de Uso
-
-### Analisar performance
-
-```
-Usuário: "Analise a performance das minhas campanhas ativas"
-
-Agente: Vou buscar os dados das suas campanhas...
-[Executa get_campaigns + get_campaign_insights]
-
-📊 ANÁLISE DE CAMPANHAS ATIVAS
-
-1. [VENDA] Vibe Code Pro - ASC
-   - Gasto: R$ 150,00
-   - CTR: 4.18% ✅ Excelente
-   - CPC: R$ 0,29
-   - Vendas: 2
-   - CPP: R$ 75,00
-
-Recomendação: Escalar para R$ 200/dia
-```
-
-### Criar campanha
-
-```
-Usuário: "Crie uma campanha de vendas para o produto X"
-
-Agente: Vou criar a campanha com as melhores práticas...
-[Executa create_campaign + create_adset]
-
-✅ Campanha criada com sucesso!
-- ID: 120240007493560007
-- Tipo: Advantage+ Sales (ASC)
-- Budget: R$ 50/dia
-- Status: PAUSADA (aguardando ativação)
-```
-
-## ⚙️ Configurações Avançadas
-
-### Personalizar o Agente
-
-Edite o arquivo `knowledge/claude.md` para adicionar:
-
-- Informações sobre seus produtos
-- Métricas e metas específicas
-- Regras de negócio
-- Histórico de campanhas
-
-### Adicionar novas Tools
-
-1. Crie o arquivo em `src/agent/tools/`
-2. Exporte a função com schema Zod
-3. Registre em `src/agent/tools/index.ts`
-
-## 🔒 Segurança
-
-- ⚠️ Nunca commite o arquivo `.env`
-- ⚠️ Token do Facebook expira em 2h
-- ⚠️ Use tokens de curta duração para testes
-- ✅ Para produção, use tokens de longa duração
-
-## 📚 Recursos
-
-- [Documentação Claude API](https://docs.anthropic.com/)
-- [Facebook Marketing API](https://developers.facebook.com/docs/marketing-apis/)
-- [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
-
-## 🤝 Suporte
-
-Dúvidas? Entre no grupo de alunos ou abra uma issue.
-
----
-
-Desenvolvido com ❤️ para o curso AI Code Pro
+Este projeto é de código aberto sob a licença MIT.

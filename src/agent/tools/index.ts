@@ -94,6 +94,18 @@ export const tools = [
   {
     type: 'function',
     function: {
+      name: 'get_ad_creatives',
+      description: 'Lista os criativos (imagens/vídeos) disponíveis na conta para serem usados em anúncios.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'create_campaign',
       description: 'Cria uma nova campanha. Por padrão cria como PAUSADA para revisão.',
       parameters: {
@@ -145,6 +157,36 @@ export const tools = [
           },
         },
         required: ['campaign_id', 'name', 'daily_budget'],
+      },
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_ad',
+      description: 'Cria um novo anúncio (Ad) dentro de um AdSet. Requer um creative_id existente.',
+      parameters: {
+        type: 'object',
+        properties: {
+          adset_id: {
+            type: 'string',
+            description: 'ID do AdSet onde criar o anúncio',
+          },
+          name: {
+            type: 'string',
+            description: 'Nome do anúncio',
+          },
+          creative_id: {
+            type: 'string',
+            description: 'ID do criativo (imagem/vídeo) para usar no anúncio. Use get_ad_creatives para encontrar.',
+          },
+          status: {
+            type: 'string',
+            description: 'Status: PAUSED ou ACTIVE',
+            default: 'PAUSED',
+          },
+        },
+        required: ['adset_id', 'name', 'creative_id'],
       },
     }
   },
@@ -237,6 +279,9 @@ export async function executeTool(
       case 'get_ads':
         return await facebookApi.getAds(input.adset_id as string | undefined, config)
 
+      case 'get_ad_creatives':
+        return await facebookApi.getAdCreatives(config)
+
       case 'create_campaign':
         return await facebookApi.createCampaign(
           input.name as string,
@@ -254,6 +299,15 @@ export async function executeTool(
           (input.optimization_goal as string) || 'OFFSITE_CONVERSIONS',
           'IMPRESSIONS', // billingEvent default
           {}, // targeting default
+          config
+        )
+
+      case 'create_ad':
+        return await facebookApi.createAd(
+          input.adset_id as string,
+          input.name as string,
+          input.creative_id as string,
+          (input.status as string) || 'PAUSED',
           config
         )
 

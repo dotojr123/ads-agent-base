@@ -2,7 +2,7 @@
  * FACEBOOK ADS API - Funções de integração
  */
 
-const META_API_VERSION = 'v22.0'
+const META_API_VERSION = 'v24.0'
 const META_BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`
 
 export interface FacebookConfig {
@@ -37,6 +37,30 @@ function getAdAccountId(config?: FacebookConfig): string {
 }
 
 /**
+ * Helper para tratamento de erros da API
+ */
+async function handleResponse(response: Response, context: string) {
+  const data = await response.json()
+
+  if (data.error) {
+    // Tratamento específico para erros comuns
+    if (data.error.code === 190) { // Token expirado ou inválido
+      throw new Error(`Token do Facebook expirado ou inválido. Por favor, renove o token nas configurações. (Erro 190)`)
+    }
+    if (data.error.code === 100) { // Parâmetros inválidos
+      throw new Error(`Parâmetro inválido na requisição do Facebook: ${data.error.message} (Erro 100)`)
+    }
+    if (data.error.code === 17) { // Rate limit
+      throw new Error(`Limite de requisições do Facebook atingido. Aguarde alguns minutos. (Erro 17)`)
+    }
+
+    throw new Error(`Erro na API do Facebook (${context}): ${data.error.message}`)
+  }
+
+  return data
+}
+
+/**
  * Listar contas de anúncios acessíveis
  */
 export async function getAdAccounts(config?: FacebookConfig): Promise<object> {
@@ -45,13 +69,7 @@ export async function getAdAccounts(config?: FacebookConfig): Promise<object> {
   const url = `${META_BASE_URL}/me/adaccounts?fields=id,name,account_status,currency&access_token=${token}`
 
   const response = await fetch(url)
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
-
-  return data
+  return handleResponse(response, 'getAdAccounts')
 }
 
 /**
@@ -68,13 +86,7 @@ export async function getCampaigns(status?: string, config?: FacebookConfig): Pr
   }
 
   const response = await fetch(url)
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
-
-  return data
+  return handleResponse(response, 'getCampaigns')
 }
 
 /**
@@ -90,13 +102,7 @@ export async function getCampaignInsights(
   const url = `${META_BASE_URL}/${campaignId}/insights?fields=campaign_name,impressions,clicks,spend,ctr,cpc,cpm,actions,cost_per_action_type,frequency,reach&date_preset=${datePreset}&access_token=${token}`
 
   const response = await fetch(url)
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
-
-  return data
+  return handleResponse(response, 'getCampaignInsights')
 }
 
 /**
@@ -115,13 +121,7 @@ export async function getAdSets(campaignId?: string, config?: FacebookConfig): P
   }
 
   const response = await fetch(url)
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
-
-  return data
+  return handleResponse(response, 'getAdSets')
 }
 
 /**
@@ -140,13 +140,21 @@ export async function getAds(adsetId?: string, config?: FacebookConfig): Promise
   }
 
   const response = await fetch(url)
-  const data = await response.json()
+  return handleResponse(response, 'getAds')
+}
 
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
+/**
+ * Listar Criativos (AdCreatives)
+ */
+export async function getAdCreatives(config?: FacebookConfig): Promise<object> {
+  const token = getAccessToken(config)
+  const accountId = getAdAccountId(config)
 
-  return data
+  // Limita a 20 para não sobrecarregar
+  const url = `${META_BASE_URL}/${accountId}/adcreatives?fields=id,name,title,body,image_url,status&limit=20&access_token=${token}`
+
+  const response = await fetch(url)
+  return handleResponse(response, 'getAdCreatives')
 }
 
 /**
@@ -178,13 +186,7 @@ export async function createCampaign(
     body: JSON.stringify(body),
   })
 
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
-
-  return data
+  return handleResponse(response, 'createCampaign')
 }
 
 /**
@@ -228,13 +230,39 @@ export async function createAdSet(
     body: JSON.stringify(body),
   })
 
-  const data = await response.json()
+  return handleResponse(response, 'createAdSet')
+}
 
-  if (data.error) {
-    throw new Error(data.error.message)
+/**
+ * Criar Ad
+ */
+export async function createAd(
+  adsetId: string,
+  name: string,
+  creativeId: string,
+  status: string = 'PAUSED',
+  config?: FacebookConfig
+): Promise<object> {
+  const token = getAccessToken(config)
+  const accountId = getAdAccountId(config)
+
+  const url = `${META_BASE_URL}/${accountId}/ads`
+
+  const body = {
+    name,
+    adset_id: adsetId,
+    creative: { creative_id: creativeId },
+    status,
+    access_token: token,
   }
 
-  return data
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  return handleResponse(response, 'createAd')
 }
 
 /**
@@ -254,11 +282,7 @@ export async function pauseCampaign(campaignId: string, config?: FacebookConfig)
     }),
   })
 
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
+  await handleResponse(response, 'pauseCampaign')
 
   return { success: true, campaignId, status: 'PAUSED' }
 }
@@ -280,11 +304,7 @@ export async function activateCampaign(campaignId: string, config?: FacebookConf
     }),
   })
 
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
+  await handleResponse(response, 'activateCampaign')
 
   return { success: true, campaignId, status: 'ACTIVE' }
 }
@@ -311,11 +331,7 @@ export async function updateBudget(
     }),
   })
 
-  const data = await response.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
-  }
+  await handleResponse(response, 'updateBudget')
 
   return { success: true, entityId, entityType, newBudget: dailyBudget }
 }
