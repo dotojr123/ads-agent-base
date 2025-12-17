@@ -1,18 +1,40 @@
-# 🤖 AI Agent Ads - Agente de Tráfego
+# 🤖 AI Agent Ads - SaaS Edition
 
-> Agente de IA especializado em Facebook/Meta Ads usando Claude Opus 4
+> Plataforma SaaS Multi-tenant para gestão e otimização de anúncios Meta e Google Ads com IA (OpenAI GPT-4o).
 
-## 🎯 O que este agente faz?
+Este repositório contém a versão completa (Fase 2) do sistema, evoluída para uma arquitetura SaaS escalável.
 
-Este é um agente de tráfego inteligente que:
+## 🎯 O que este sistema faz?
 
-- ✅ **Analisa campanhas** - Métricas, performance, ROI
-- ✅ **Cria campanhas** - ASC, Leads, Conversões
-- ✅ **Otimiza anúncios** - Sugere melhorias baseado em dados
-- ✅ **Gera relatórios** - Performance diária/semanal
-- ✅ **Responde perguntas** - Como um especialista em tráfego
+O **AI Agent Ads** é uma plataforma inteligente que permite gestão centralizada de campanhas publicitárias para múltiplos clientes (Workspaces):
 
-## 🚀 Quick Start
+- ✅ **Arquitetura Multi-tenant** - Gestão segregada por Workspace
+- ✅ **Criação de Campanhas** - Meta Ads (Facebook/Instagram) e Google Ads
+- ✅ **Análise com IA** - Insights de performance gerados por GPT-4o
+- ✅ **Billing Próprio** - Integração completa com Stripe Assinaturas
+- ✅ **Autenticação Segura** - Login Social e gestão de membros
+
+## 🏗 Arquitetura & Tech Stack
+
+O sistema utiliza tecnologias modernas focadas em performance e escala:
+
+- **Framework:** Next.js 14 (App Router)
+- **Autenticação:** NextAuth.js (Google, Facebook)
+- **Banco de Dados:** PostgreSQL (Supabase) + Prisma 5
+- **Billing:** Stripe (Checkout, Webhooks, Assinaturas)
+- **IA:** OpenAI (GPT-4o Mini / GPT-4o)
+- **Estilo:** Tailwind CSS + ShadcnUI
+
+### Modelagem de Dados
+
+O banco de dados foi estruturado para suportar múltiplos tenants:
+
+- **Workspace:** Entidade principal que agrupa contas de anúncios e membros.
+- **User:** Usuário autenticado.
+- **AdAccount:** Credenciais de anúncios (Meta/Google) criptografadas por workspace.
+- **Subscription:** Estado da assinatura Stripe.
+
+## 🚀 Quick Start (Desenvolvimento Local)
 
 ### 1. Instalar dependências
 
@@ -20,7 +42,7 @@ Este é um agente de tráfego inteligente que:
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
+### 2. Configurar Variáveis de Ambiente
 
 Copie o arquivo de exemplo:
 
@@ -28,192 +50,82 @@ Copie o arquivo de exemplo:
 cp .env.example .env
 ```
 
-Edite o `.env` com suas credenciais:
+Edite o `.env` com suas credenciais. Para rodar o SaaS completo, você precisará configurar:
 
 ```env
-# Claude API (Anthropic)
-ANTHROPIC_API_KEY=sk-ant-api03-...
+# --- BANCO DE DADOS (Supabase) ---
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
 
-# Facebook/Meta Ads
-META_ACCESS_TOKEN=EAAZAisZBEEli4BQ...
-META_AD_ACCOUNT_ID=act_2881836401882483
-META_PAGE_ID=354471961693587
-META_PIXEL_ID=512054569681165
+# --- AUTENTICAÇÃO (NextAuth) ---
+NEXTAUTH_SECRET="sua-chave-secreta"
+NEXTAUTH_URL="http://localhost:3000"
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+FACEBOOK_CLIENT_ID="..."
+FACEBOOK_CLIENT_SECRET="..."
+
+# --- BILLING (Stripe) ---
+STRIPE_SECRET_KEY="..."
+STRIPE_WEBHOOK_SECRET="..."
+
+# --- ESTRATÉGIA IA ---
+OPENAI_API_KEY="sk-..."
+
+# --- SEGURANÇA ---
+ENCRYPTION_KEY="chave-32-chars-para-tokens"
 ```
 
-### 3. Obter Token do Facebook
+### 3. Configurar Banco de Dados
 
-⚠️ **IMPORTANTE:** O token do Facebook expira a cada 2 horas!
+Crie as tabelas no seu banco PostgreSQL (Supabase recomendado):
 
-1. Acesse: https://developers.facebook.com/tools/explorer/
-2. Selecione seu App
-3. Marque as permissões:
-   - `ads_read`
-   - `ads_management`
-   - `business_management`
-4. Clique em "Generate Access Token"
-5. Copie e cole no `.env`
+```bash
+npx prisma db push
+```
 
-### 4. Rodar o agente
+### 4. Rodar a aplicação
 
 ```bash
 npm run dev
 ```
 
-Acesse: http://localhost:3000
+Acesse: [http://localhost:3000](http://localhost:3000)
 
-## 📁 Estrutura do Projeto
-
-```
-ads-agent/
-├── src/
-│   ├── agent/
-│   │   ├── index.ts          # Agente principal
-│   │   ├── tools/            # Ferramentas do agente
-│   │   │   ├── facebook-api.ts
-│   │   │   ├── campaign-creator.ts
-│   │   │   ├── analytics.ts
-│   │   │   └── index.ts
-│   │   └── prompts/
-│   │       └── system.md     # Prompt do sistema (persona)
-│   ├── api/
-│   │   └── chat/
-│   │       └── route.ts      # API endpoint
-│   └── app/
-│       └── page.tsx          # Interface do chat
-├── knowledge/
-│   └── claude.md             # Conhecimento do agente
-├── .env.example
-├── .env
-├── package.json
-└── README.md
-```
-
-## 🧠 Como o Agente Funciona
-
-### Arquitetura
+## 📂 Estrutura do Projeto
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    FRONTEND (React)                      │
-│                   Chat Interface                         │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────┐
-│                    API (Next.js)                         │
-│                   /api/chat                              │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────┐
-│                 AGENTE (Claude Opus 4)                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │
-│  │ System      │  │ Knowledge   │  │ Tools       │      │
-│  │ Prompt      │  │ (claude.md) │  │ (Facebook)  │      │
-│  └─────────────┘  └─────────────┘  └─────────────┘      │
-└─────────────────────┬───────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────┐
-│              FACEBOOK ADS API (Graph API)                │
-│  Campanhas | AdSets | Ads | Insights | Creatives        │
-└─────────────────────────────────────────────────────────┘
+src/
+├── app/
+│   ├── (public)/       # Landing Page e Pricing (Public)
+│   ├── (auth)/         # Rotas de Autenticação
+│   ├── (app)/          # Área logada do SaaS (Dashboard, Chat)
+│   └── api/            # Endpoints (Chat, Stripe, Accounts)
+├── agent/
+│   ├── index.ts        # Orquestrador do Agente
+│   └── tools/          # Ferramentas (Meta/Google API Wrappers)
+├── lib/                # Configurações globais (Auth, DB, Stripe, Crypto)
+├── components/         # Componentes UI Reutilizáveis
+└── prisma/             # Schema do Banco de Dados
 ```
 
-### Fluxo de Execução
+## 🧠 Como a IA Funciona
 
-1. **Usuário envia mensagem** no chat
-2. **API recebe** e monta contexto (system prompt + knowledge)
-3. **Claude Opus 4** processa e decide qual tool usar
-4. **Tool executa** (ex: buscar métricas no Facebook)
-5. **Claude interpreta** resultado e responde
-6. **Frontend exibe** resposta formatada
+1. **Contexto:** O usuário seleciona um Workspace e uma Plataforma (Meta ou Google).
+2. **Processamento:** O backend (`/api/chat`) carrega as credenciais criptografadas daquele workspace.
+3. **Execução:** O Agente (OpenAI) decide quais ferramentas usar (`get_campaigns`, `create_ad`, etc.) com base no prompt do sistema.
+4. **Segurança:** As credenciais nunca são expostas ao frontend; tudo roda server-side.
 
-## 🛠️ Tools Disponíveis
+## 📝 Checklist de Funcionalidades (Status Atual)
 
-| Tool | Descrição |
-|------|-----------|
-| `get_campaigns` | Lista todas as campanhas |
-| `get_campaign_insights` | Métricas de uma campanha |
-| `create_campaign` | Cria nova campanha |
-| `create_adset` | Cria conjunto de anúncios |
-| `create_ad` | Cria anúncio (sem imagem) |
-| `pause_campaign` | Pausa campanha |
-| `activate_campaign` | Ativa campanha |
-| `get_ad_accounts` | Lista contas de anúncios |
-
-## 📊 Exemplos de Uso
-
-### Analisar performance
-
-```
-Usuário: "Analise a performance das minhas campanhas ativas"
-
-Agente: Vou buscar os dados das suas campanhas...
-[Executa get_campaigns + get_campaign_insights]
-
-📊 ANÁLISE DE CAMPANHAS ATIVAS
-
-1. [VENDA] Vibe Code Pro - ASC
-   - Gasto: R$ 150,00
-   - CTR: 4.18% ✅ Excelente
-   - CPC: R$ 0,29
-   - Vendas: 2
-   - CPP: R$ 75,00
-
-Recomendação: Escalar para R$ 200/dia
-```
-
-### Criar campanha
-
-```
-Usuário: "Crie uma campanha de vendas para o produto X"
-
-Agente: Vou criar a campanha com as melhores práticas...
-[Executa create_campaign + create_adset]
-
-✅ Campanha criada com sucesso!
-- ID: 120240007493560007
-- Tipo: Advantage+ Sales (ASC)
-- Budget: R$ 50/dia
-- Status: PAUSADA (aguardando ativação)
-```
-
-## ⚙️ Configurações Avançadas
-
-### Personalizar o Agente
-
-Edite o arquivo `knowledge/claude.md` para adicionar:
-
-- Informações sobre seus produtos
-- Métricas e metas específicas
-- Regras de negócio
-- Histórico de campanhas
-
-### Adicionar novas Tools
-
-1. Crie o arquivo em `src/agent/tools/`
-2. Exporte a função com schema Zod
-3. Registre em `src/agent/tools/index.ts`
-
-## 🔒 Segurança
-
-- ⚠️ Nunca commite o arquivo `.env`
-- ⚠️ Token do Facebook expira em 2h
-- ⚠️ Use tokens de curta duração para testes
-- ✅ Para produção, use tokens de longa duração
-
-## 📚 Recursos
-
-- [Documentação Claude API](https://docs.anthropic.com/)
-- [Facebook Marketing API](https://developers.facebook.com/docs/marketing-apis/)
-- [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
-
-## 🤝 Suporte
-
-Dúvidas? Entre no grupo de alunos ou abra uma issue.
+- [x] **Arquitetura Multi-tenant:** Database schema e isolamento de dados.
+- [x] **Autenticação:** NextAuth com Providers configurados.
+- [x] **Billing:** Integração completa com Stripe.
+- [x] **Interface:** Dashboard, Chat, Histórico e Configurações.
+- [x] **Tools Meta Ads:** Leitura e Escrita funcionais.
+- [ ] **Tools Google Ads:** Implementação básica (necessita integração API oficial).
+- [ ] **Fluxo OAuth Real:** O sistema atualmente usa tokens inseridos manualmente ou mocks para demonstração em alguns pontos.
 
 ---
 
-Desenvolvido com ❤️ para o curso AI Code Pro
+Desenvolvido com ❤️
