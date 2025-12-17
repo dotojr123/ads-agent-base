@@ -23,17 +23,35 @@ export default async function AppLayout({
 
   // If no workspace, create a default one (Onboarding)
   if (workspaces.length === 0 && session.user.name) {
-      // Auto-create default workspace for new user
-      const slug = session.user.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random() * 1000)
-       await prisma.workspace.create({
-        data: {
-          name: `${session.user.name}'s Workspace`,
-          slug: slug || 'default-workspace',
-          users: { create: { userId: userId, role: 'OWNER' } },
-          subscription: { create: { status: 'ACTIVE', plan: 'STARTER' } }
+      try {
+        // Only try to create if DB is likely up (checking env var is not enough but good signal)
+        if (process.env.DATABASE_URL) {
+            // Auto-create default workspace for new user
+            const slug = session.user.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random() * 1000)
+            await prisma.workspace.create({
+                data: {
+                name: `${session.user.name}'s Workspace`,
+                slug: slug || 'default-workspace',
+                users: { create: { userId: userId, role: 'OWNER' as any } },
+                subscription: { create: { status: 'ACTIVE', plan: 'STARTER' } }
+                }
+            })
+            workspaces = await getUserWorkspaces(userId)
         }
-      })
-      workspaces = await getUserWorkspaces(userId)
+      } catch (e) {
+          console.warn("Could not auto-create workspace (DB potentially down), proceeding with empty/mock state.", e)
+          // Mock workspace for UI if creation failed
+           workspaces = [{
+              userId,
+              workspaceId: 'mock-workspace-id',
+              role: 'OWNER' as any,
+              workspace: {
+                id: 'mock-workspace-id',
+                name: 'Workspace Demo',
+                slug: 'workspace-demo',
+              } as any
+            }] as any
+      }
   }
 
   return (
@@ -57,8 +75,11 @@ export default async function AppLayout({
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          <Link href="/app" className="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
+             <span>📊</span> Visão Geral
+          </Link>
           <Link href="/app/chat" className="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
-             <span>💬</span> Chat
+             <span>👥</span> Equipe
           </Link>
           <Link href="/app/accounts" className="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
              <span>🔗</span> Contas

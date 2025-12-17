@@ -8,7 +8,11 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from '@/lib/db'
 import { getUserWorkspaces } from '@/lib/dal'
 import { decrypt } from '@/lib/encryption'
-import { Platform } from '@prisma/client'
+// import { Platform } from '@prisma/client' // Prisma Client might be missing
+enum Platform {
+  META = 'META',
+  GOOGLE = 'GOOGLE'
+}
 
 // Carregar conhecimento do agente
 function loadKnowledge(): string {
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
             })
 
             // Populate Config
-            accounts.forEach(acc => {
+            accounts.forEach((acc: any) => {
                 const token = decrypt(acc.accessToken)
                 if (acc.platform === 'META') {
                     // Use the first Meta account found for context (MVP limitation)
@@ -112,6 +116,10 @@ export async function POST(request: NextRequest) {
                      }
                 }
             })
+            // Trends uses process.env.SERPAPI_API_KEY directly, no mapped account needed
+            if (process.env.SERPAPI_API_KEY) {
+                addLog('info', '✅ Módulo de Trends ativo')
+            }
         } catch (dbError) {
              addLog('error', '⚠️ Erro ao ler banco de dados (ignorando em modo de falha)')
              console.error(dbError)

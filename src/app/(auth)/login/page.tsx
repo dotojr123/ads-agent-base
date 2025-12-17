@@ -14,14 +14,14 @@ export default function LoginPage() {
 
         <div className="space-y-4">
           <button
-            onClick={() => signIn('google', { callbackUrl: '/app/chat' })}
+            onClick={() => signIn('google', { callbackUrl: '/app' })}
             className="w-full py-3 bg-white text-black hover:bg-gray-100 rounded-xl font-medium flex items-center justify-center gap-3 transition"
           >
             <span className="text-xl">G</span> Continuar com Google
           </button>
 
           <button
-            onClick={() => signIn('facebook', { callbackUrl: '/app/chat' })}
+            onClick={() => signIn('facebook', { callbackUrl: '/app' })}
             className="w-full py-3 bg-[#1877F2] text-white hover:bg-[#166fe5] rounded-xl font-medium flex items-center justify-center gap-3 transition"
           >
             <span className="text-xl">f</span> Continuar com Facebook
@@ -37,17 +37,26 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); /* Mock Login */ }}>
+        <form className="space-y-4" onSubmit={(e) => {
+            e.preventDefault();
+            const email = (e.target as any).email.value;
+            const password = (e.target as any).password.value;
+            signIn('credentials', {
+                email,
+                password,
+                callbackUrl: '/app'
+            });
+        }}>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Email</label>
-            <input type="email" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-green-500 outline-none" placeholder="seu@email.com" />
+            <input name="email" type="email" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-green-500 outline-none" placeholder="seu@email.com" />
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Senha</label>
-            <input type="password" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-green-500 outline-none" placeholder="••••••••" />
+            <input name="password" type="password" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-green-500 outline-none" placeholder="••••••••" />
           </div>
-          <button disabled className="w-full py-3 bg-green-600/50 cursor-not-allowed text-white rounded-xl font-medium">
-            Entrar (Em breve)
+          <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-medium transition">
+            Entrar
           </button>
         </form>
 

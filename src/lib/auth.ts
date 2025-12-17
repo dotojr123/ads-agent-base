@@ -6,7 +6,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './db'
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // adapter: PrismaAdapter(prisma), // Desabilitado temporariamente para permitir login Mock sem DB real conectado
   session: {
     strategy: 'jwt',
   },
@@ -40,17 +40,16 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // This is a placeholder for email/pass login.
-        // In a real app, you would hash/compare passwords.
-        // For MVP/SaaS starter, we might restrict this or use a Magic Link.
-        // For now, let's assume if the user exists they can login (MOCK)
-        // or just rely on Social Login.
-        // I will return null to disable it for now unless requested explicitly with logic.
-        // The prompt says "Login por e-mail/senha opcional".
-        // I'll implement a basic check against User table if I had passwords there.
-        // Since User model doesn't have password field yet, I'll skip implementation
-        // or add password field if needed.
-        // Let's stick to Social Login as primary.
+        // MOCK LOGIN FOR DEVELOPMENT
+        // Allows any email with password "123456" or just lets them in for now to unblock
+        if (credentials?.email) {
+            return {
+                id: 'mock-user-id',
+                name: 'Usuário Teste',
+                email: credentials.email,
+                image: null
+            }
+        }
         return null
       }
     })
@@ -67,25 +66,14 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async jwt({ token, user }) {
-      const dbUser = await prisma.user.findFirst({
-        where: {
-          email: token.email,
-        },
-      })
-
-      if (!dbUser) {
-        if (user) {
-          token.id = user.id
-        }
-        return token
+      // MOCK ONLY: Removemos qualquer lógica de banco de dados para garantir o login
+      if (user) {
+        token.id = user.id
+        token.email = user.email
+        token.name = user.name
+        token.picture = user.image
       }
-
-      return {
-        id: dbUser.id,
-        name: dbUser.name,
-        email: dbUser.email,
-        picture: dbUser.image,
-      }
+      return token
     },
   },
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { signIn } from 'next-auth/react'
 import { CheckCircle, Plus, Trash2, AlertCircle } from 'lucide-react'
 
 // Mock Data fallbacks
@@ -29,31 +30,25 @@ export default function AccountsPage() {
     fetchAccounts()
   }, [])
 
+  // Import at top: import { signIn } from 'next-auth/react'
+
   const handleConnect = async (platform: 'META' | 'GOOGLE') => {
     setIsConnecting(true)
 
-    // In a real app, this triggers window.location.href = '/api/auth/facebook/ads'
-    // Here we simulate the callback with a mock token and POST to our API
     try {
-        const mockData = {
-            platform,
-            name: platform === 'META' ? 'Conta Meta Demo' : 'Conta Google Demo',
-            externalId: platform === 'META' ? `act_${Math.floor(Math.random()*10000)}` : `999-${Math.floor(Math.random()*1000)}`,
-            accessToken: 'mock_token_' + Math.random() // This will be encrypted by backend
-        }
-
-        const res = await fetch('/api/accounts', {
-            method: 'POST',
-            body: JSON.stringify(mockData)
-        })
-
-        if (res.ok) {
-            fetchAccounts()
-        } else {
-            alert('Erro ao conectar conta')
+        if (platform === 'GOOGLE') {
+            // Redirect to Google OAuth
+            // Note: In NextAuth 'google' usually provides profile, but for Ads we might need extra scopes.
+            // For now, we use the standard sign-in which might just link the account or refresh token.
+            // If we needed specific Ads scopes, we'd handle that in authOptions provider config.
+            await signIn('google', { callbackUrl: '/app/accounts' })
+        } else if (platform === 'META') {
+            // For Meta, we typically use 'facebook' provider
+            await signIn('facebook', { callbackUrl: '/app/accounts' })
         }
     } catch (e) {
-        console.error(e)
+        console.error("Connection failed", e)
+        alert('Erro ao iniciar conexão. Verifique logs.')
     } finally {
         setIsConnecting(false)
     }

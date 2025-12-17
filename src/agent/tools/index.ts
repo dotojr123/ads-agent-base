@@ -5,6 +5,8 @@
 import * as facebookApi from './facebook-api'
 import * as googleApi from './google-api'
 
+import * as trendsApi from './google-trends'
+
 // Definição das ferramentas no formato OpenAI
 export const tools = [
   // --- FACEBOOK ADS TOOLS ---
@@ -151,6 +153,65 @@ export const tools = [
       },
     }
   },
+
+  // --- GOOGLE TRENDS TOOLS (NEW) ---
+  {
+    type: 'function',
+    function: {
+      name: 'trends_search_interest',
+      description: 'Busca interesse ao longo do tempo para termos no Google Trends.',
+      parameters: {
+        type: 'object',
+        properties: {
+          queries: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Lista de termos para comparar (ex: ["iphone", "samsung"]). Max 5.'
+          },
+          date: { type: 'string', default: 'today 12-m' },
+          geo: { type: 'string', description: 'País (ex: BR, US). Vazio = Mundo.' }
+        },
+        required: ['queries'],
+      },
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'trends_search_related',
+      description: 'Busca tópicos ou consultas relacionadas a um termo no Google Trends.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string' },
+          type: { type: 'string', enum: ['RELATED_TOPICS', 'RELATED_QUERIES'], default: 'RELATED_QUERIES' },
+          date: { type: 'string', default: 'today 12-m' },
+          geo: { type: 'string', description: 'País (ex: BR, US).' }
+        },
+        required: ['query'],
+      },
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'trends_search_geo',
+      description: 'Busca interesse por região (mapa) para termos.',
+      parameters: {
+        type: 'object',
+        properties: {
+          queries: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Lista de termos.'
+          },
+          date: { type: 'string', default: 'today 12-m' },
+          geo: { type: 'string', description: 'País para detalhar regiões (ex: BR).' }
+        },
+        required: ['queries'],
+      },
+    }
+  }
 ]
 
 // Executor de ferramentas
@@ -212,6 +273,33 @@ export async function executeTool(
                 )
             default:
                 return { error: `Ferramenta Google não encontrada: ${toolName}` }
+        }
+    }
+
+    // --- TRENDS HANDLERS ---
+    if (toolName.startsWith('trends_')) {
+        switch(toolName) {
+            case 'trends_search_interest':
+                return await trendsApi.searchInterestOverTime(
+                    input.queries as string[],
+                    input.date as string,
+                    input.geo as string
+                )
+            case 'trends_search_related':
+                return await trendsApi.searchRelated(
+                    input.query as string,
+                    input.type as any,
+                    input.date as string,
+                    input.geo as string
+                )
+            case 'trends_search_geo':
+                return await trendsApi.searchGeoMap(
+                    input.queries as string[],
+                    input.date as string,
+                    input.geo as string
+                )
+             default:
+                return { error: `Ferramenta Trends não encontrada: ${toolName}` }
         }
     }
 
